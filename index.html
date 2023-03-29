@@ -3,17 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="styles.css">
   <title>Trade Data</title>
 </head>
 <body>
-  <select id="leagueSelect">
+  <h2>Enter username:</h2>
+  <form id="usernameForm">
+    <input type="text" id="usernameInput" minlength="1" required>
+    <button id="searchButton" type="submit">Submit</button>
+  </form>
+  <select class="hidden" id="leagueSelect">
     <option value="">Select league</option>
   </select>
-  <select id="yearSelect">
+  <select class="hidden" id="yearSelect">
     <option value=""></option>
   </select>
-  <div id="tradeData"></div>
+  <div id="main"><div id="tradeData"></div></div>
   <div id="statusMessage"></div>
   <script src="players.js"></script>
   <script src="main.js"></script>

@@ -1,90 +1,117 @@
-.trade-container {
+.trade {
     display: flex;
+    position: relative;
+    flex-direction: column;
+    margin-bottom: 1em;
+  }
+  
+.trade-timestamp {
+    font-style: italic;
+    font-size: .7em;
+    text-align: center;
+}
+  
+  .player-cell {
+    position: relative;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    padding: 8px 0 0;
+  }
+  .player-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .trade-slot {
+    display: inline-block;
+    vertical-align: middle;
+    height: 50px;
+    width: 50px;
+    background-position: center;
+    border: 2px solid #00ceb8;
+    border-radius: 100%;
+    position: relative;
+    background-repeat: no-repeat;
+    background-size: auto 50px
+  }
+  .trade-indicator {
+    position: absolute;
+    bottom: -8px;
+    right: -8px;
+    color: #00ceb8;
+    background-color: #fff;
+    border-radius: 50%;
+  }
+    .material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 48
+    }
+  .player-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .player-name {
+    font-weight: bold;
+  }
+  
+  .player-position-team {
+    font-size: 14px;
+    margin-top: 5px;
+  }
+  
+  .arrow {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-top: 15px solid transparent;
+    border-bottom: 15px solid transparent;
+    border-right: 15px solid #222;
+    margin: 0 20px;
+  }
+  #main {
+    position: relative;
+    z-index: 1;
+    display: block;
+    margin: 30px auto;
+    width: 95%;
+    max-width: 1000px;
+    overflow-y: hidden;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    height: 1px;
+  }
+  th {
+    width: 50%;
+    position: relative;
+    text-align: center;
+  }
+  th div {
+    display: flex;
+    flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-  }
-  
-  .trade-info {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    margin: 0 10px;
-  }
-  
-  .trade-info h3 {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: bold;
-    text-align: center;
-  }
-  
-  .trade-info p {
-    margin: 0;
-    font-size: 1rem;
-    text-align: center;
-  }
-  
-  .player-image {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    overflow: hidden;
-  }
-  
-  .player-image img {
-    display: block;
-    width: 100%;
     height: 100%;
-    object-fit: cover;
   }
-  
-  .trade-from {
-    background-color: #FEE2E2;
-    padding: 10px;
-    border-radius: 5px;
+  tbody {
+    background-color: white;
+    border: blue 1px solid;
+    margin: 20px;
   }
-  
-  .trade-to {
-    background-color: #D1FAE5;
-    padding: 10px;
-    border-radius: 5px;
-  }
-  
-  .trade-from h3, .trade-to h3 {
-    margin-bottom: 5px;
-  }
-  
-  .trade-from p, .trade-to p {
-    margin: 0;
-  }
-  
-  .trade-from .player-image img, .trade-to .player-image img {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-  }
-  
-  .trade-from .player-info, .trade-to .player-info {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    margin-left: 10px;
-  }
-  
-  .trade-from .player-position, .trade-to .player-position {
-    font-size: 0.8rem;
-  }
-  
-  .trade-from .player-team, .trade-to .player-team {
-    font-size: 0.8rem;
-  }
-  
-  .trade-from .player-name, .trade-to .player-name {
-    font-size: 1rem;
-    font-weight: bold;
+  td {
     text-align: center;
+    padding: 0;
+    vertical-align: top;
   }
-  
+  body {
+    font-family: roboto;
+  }
