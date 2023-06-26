@@ -8,6 +8,7 @@ const submitUsernameButtonElement = document.getElementById("submitUsernameButto
 const statusMessageElement = document.getElementById("statusMessage");
 const leagueYearSelectContainerElement = document.getElementById("leagueYearSelectContainer");
 const searchButton = document.getElementById("searchButton");
+const usernameDisplay = document.getElementById('usernameDisplay');
 let leagues = [];
 
 function getNumEnd(num) {
@@ -22,7 +23,21 @@ function getNumEnd(num) {
           return "th";
   }
 }
-
+async function handleCheckbox(e) {
+  const allHiddenTrades = document.querySelectorAll('.hide-trade');
+  if (e.target.checked) {
+    for (let i = 0; i < allHiddenTrades.length; i++) {
+      allHiddenTrades[i].style.display = "none";
+    }
+  } else {
+    for (let i = 0; i < allHiddenTrades.length; i++) {
+      allHiddenTrades[i].style.display = "block";
+    }
+  }
+}
+usernameDisplay.addEventListener("change", function(e) {
+  handleCheckbox(e); // Call the handleCheckbox function with the event object
+});
 async function getLeagues(userId) {
   const leagues = [];
 
@@ -141,6 +156,10 @@ function displayTradeInfo(playerTradeInfo) {
     tradeSpanRight.textContent = player.originalOwnerDisplayName;
     tradeSpanLeft.textContent = player.newOwnerDisplayName;
     tradeTimestamp.textContent = player.timestamp;
+    let userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    if(player.originalOwnerDisplayName.toLowerCase() != userInfo[0].username && player.newOwnerDisplayName.toLowerCase() != userInfo[0].username) {
+      tradeElement.classList.add("hide-trade");
+    }
   });
 
   tradeDataElement.appendChild(tradeElement);
@@ -228,7 +247,7 @@ async function displayTradesForYear(leagues, selectedLeagueName, year) {
       await processLeagueTrades(league);
     }
   }
-  
+  handleCheckbox({ target: { checked: usernameDisplay.checked } }); // Manually trigger the function call with an event-like object
 }
 
 
@@ -463,27 +482,31 @@ async function main() {
 
   searchButton.addEventListener("click", async () => {
     const usernameInput = document.getElementById("usernameInput");
-    const username = usernameInput.value.trim();
+    const username = usernameInput.value.trim().toLowerCase();
+    const userArray = [];
     if (username.length < 1) {
       alert("Please enter a valid username.");
       return;
     }
-    if (!user_id) {
+    if (!userInfo) {
       try {
         const response = await fetch(`${baseURL}user/${username}`);
         const userData = await response.json();
-        user_id = userData.user_id;
-        localStorage.setItem("user_id", user_id);
+        userArray.push({
+          user_identification: userData.user_id,
+          username: username
+        })
+        localStorage.setItem("userInfo", JSON.stringify(userArray));
       } catch (error) {
         alert("Unable to find user with that username.");
         return;
       }
     }
-    start(user_id);
+    start(userInfo.user_id);
   });
-  let user_id = localStorage.getItem("user_id");
-  if(user_id) {
-    start(user_id);
+  let userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  if(userInfo) {
+    start(userInfo[0].user_identification);
   }
 
 }
