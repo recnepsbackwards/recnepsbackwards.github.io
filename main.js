@@ -1,4 +1,4 @@
-const user_id = "325851667310313472";
+// const user_id = "325851667310313472";
 const baseURL = "https://api.sleeper.app/v1/";
 const tradeDataElement = document.getElementById("tradeData");
 const leagueSelectElement = document.getElementById("leagueSelect");
@@ -8,28 +8,54 @@ const submitUsernameButtonElement = document.getElementById("submitUsernameButto
 const statusMessageElement = document.getElementById("statusMessage");
 const leagueYearSelectContainerElement = document.getElementById("leagueYearSelectContainer");
 const searchButton = document.getElementById("searchButton");
+let leagues = [];
 
-async function getUserIdFromUsername(username) {
-  const response = await fetch(`${baseURL}user/${username}`);
-  const data = await response.json();
-  if (!data) {
-    throw new Error("Invalid username.");
+function getNumEnd(num) {
+  switch (num) {
+      case 1:
+          return "st";
+      case 2:
+          return "nd";
+      case 3:
+          return "rd";
+      default:
+          return "th";
   }
-  return data.user_id;
 }
 
 async function getLeagues(userId) {
   const leagues = [];
+
   for (let year = 2017; year <= new Date().getFullYear(); year++) {
     const response = await fetch(baseURL + "user/" + userId + "/leagues/nfl/" + year);
     const yearlyLeagues = await response.json();
-    leagues.push(...yearlyLeagues);
+
+    yearlyLeagues.forEach((league) => {
+      const leagueName = league.name;
+
+      const existingLeague = leagues.find((item) => item.leagueName === leagueName);
+      if (existingLeague) {
+        const existingYear = existingLeague.years.find((item) => item.year === year);
+        if (existingYear) {
+          existingYear.leagues.push(league);
+        } else {
+          existingLeague.years.push({ year, leagues: [league] });
+        }
+      } else {
+        leagues.push({
+          leagueName,
+          years: [{ year, leagues: [league] }]
+        });
+      }
+    });
   }
+
   return leagues;
 }
 
+
+
 async function getTransactionsForLeague(leagueId) {
-  console.log(leagueId);
   const transactions = [];
   const maxWeeks = 18;
 
@@ -144,11 +170,14 @@ async function getLeagueRosters(leagueId) {
 }
   
 function getUniqueYears(leagues, selectedLeagueName) {
-  const selectedLeagues = leagues.filter((league) => league.name === selectedLeagueName);
-  const uniqueYears = [...new Set(selectedLeagues.map((league) => league.season))];
-  uniqueYears.sort((a, b) => b - a);
-  return uniqueYears;
+  const selectedLeague = leagues.find((league) => league.leagueName === selectedLeagueName);
+  if (selectedLeague) {
+    const uniqueYears = selectedLeague.years.map((year) => year.year).sort((a, b) => b - a);
+    return uniqueYears;
+  }
+  return [];
 }
+
 
 function populateLeagueDropdown(leagues) {
   // Create an array to store unique league names
@@ -159,21 +188,26 @@ function populateLeagueDropdown(leagues) {
 
   // Loop through the leagues and add unique names to the array and options to the select element
   for (const league of leagues) {
-    if (!uniqueLeagueNames.includes(league.name)) {
-      uniqueLeagueNames.push(league.name);
+    if (!uniqueLeagueNames.includes(league.leagueName)) {
+      uniqueLeagueNames.push(league.leagueName);
 
       const option = document.createElement("option");
-      option.value = league.name;
-      option.text = league.name;
+      option.value = league.leagueName;
+      option.text = league.leagueName;
       leagueSelectElement.add(option);
     }
   }
 }
 
 
-function populateYearDropdown(uniqueYears) {
-  if (uniqueYears.length > 1) {
-    yearSelectElement.innerHTML = uniqueYears.map(year => `<option value="${year}">${year}</option>`).join("");
+function populateYearDropdown(leagueName) {
+  const selectedLeague = leagues.find((league) => league.leagueName === leagueName);
+
+  if (selectedLeague && selectedLeague.years.length > 1) {
+    const uniqueYears = selectedLeague.years.map((year) => year.year);
+    const reversedYears = uniqueYears.reverse();
+    yearSelectElement.innerHTML = reversedYears.map((year) => `<option value="${year}">${year}</option>`).join("");
+
     yearSelectElement.disabled = false;
   } else {
     yearSelectElement.innerHTML = "";
@@ -181,28 +215,22 @@ function populateYearDropdown(uniqueYears) {
   }
 }
 
-async function displayTradesForSelectedLeague(leagues, selectedLeagueName) {
-  tradeDataElement.innerHTML = "";
-  const selectedLeagues = leagues.filter((league) => league.name === selectedLeagueName);
-  const uniqueYears = getUniqueYears(leagues, selectedLeagueName);
-  const yearOptionsHTML = uniqueYears
-  .map((year) => `<option value="${year}">${year}</option>`)
-  .join("");
-  yearSelectElement.innerHTML = yearOptionsHTML;
-
-  await displayTradesForYear(selectedLeagues, selectedLeagueName, uniqueYears[0]);
-}
-
 async function displayTradesForYear(leagues, selectedLeagueName, year) {
   tradeDataElement.innerHTML = "";
-
-  const selectedLeagues = leagues.filter((league) => league.name === selectedLeagueName);
-  const leaguesForYear = selectedLeagues.filter((league) => league.season === year);
-
-  for (const league of leaguesForYear) {
-    await processLeagueTrades(league);
+  const selectedLeague = leagues.find((league) => league.leagueName === selectedLeagueName);
+  if (selectedLeague) {
+    const yearHeader = document.createElement("h2");
+    yearHeader.textContent = year;
+    tradeDataElement.appendChild(yearHeader);
+    const leaguesForYear = selectedLeague.years.filter((leagueYear) => leagueYear.year === year);
+    for (const leagueYear of leaguesForYear) {
+      const league = leagueYear.leagues[0];
+      await processLeagueTrades(league);
+    }
   }
+  
 }
+
 
 async function getLeagueTradesUsers(leagueId) {
   let leagueUsers = JSON.parse(localStorage.getItem(`leagueUsers_${leagueId}`));
@@ -232,9 +260,7 @@ async function getLeagueTradesUsers(leagueId) {
 async function processLeagueTrades(league) {
   const leagueTrades = await getLeagueTrades(league.league_id);
   const leagueUsers = await getLeagueTradesUsers(league.league_id);
-  const yearHeader = document.createElement("h2");
-  yearHeader.textContent = league.season;
-  tradeDataElement.appendChild(yearHeader);
+
   if (leagueTrades) {
     for (const trade of leagueTrades) {
       if (trade.adds && typeof trade.adds === "object") {
@@ -245,79 +271,69 @@ async function processLeagueTrades(league) {
           const teamName = playerObj ? playerObj.team || "" : "";
           const playerPosition = playerObj ? playerObj.position || "" : "";
           const teamLogo = teamName ? `https://sleepercdn.com/images/team_logos/nfl/${teamName.toLowerCase()}.png` : "";
+
           if (playerPosition === "DEF") {
             playerImage = teamLogo;
             playerName = playerObj.first_name + ' ' + playerObj.last_name;
           }
+
           const timestamp = digestDate(trade.status_updated);
           const originalOwnerRosterId = trade.drops[playerId];
           const newOwnerRosterId = trade.adds[playerId];
-          const originalOwner = leagueUsers.find(user => user.roster_id === originalOwnerRosterId);
-          const newOwner = leagueUsers.find(user => user.roster_id === newOwnerRosterId);
+          const originalOwner = leagueUsers.find((user) => user.roster_id === originalOwnerRosterId);
+          const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
           const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
           const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
 
           return {
             playerName,
             playerPosition,
-            playerImage: playerImage,
-            teamName: teamName,
-            timestamp: timestamp,
-            originalOwnerDisplayName: originalOwnerDisplayName,
-            newOwnerDisplayName: newOwnerDisplayName,
-            originalOwnerRosterId: originalOwnerRosterId,
-            newOwnerRosterId: newOwnerRosterId
-
+            playerImage,
+            teamName,
+            timestamp,
+            originalOwnerDisplayName,
+            newOwnerDisplayName,
+            originalOwnerRosterId,
+            newOwnerRosterId,
           };
         });
-        if(trade.draft_picks) {
-          // console.log(trade.draft_picks);
+
+        if (trade.draft_picks) {
           for (const draftPick of trade.draft_picks) {
-            timestamp = digestDate(trade.status_updated);
-            originalOwnerRosterId = draftPick.previous_owner_id;
-            newOwnerRosterId = draftPick.owner_id;
-            originalOwner = leagueUsers.find(user => user.roster_id === originalOwnerRosterId);
-            newOwner = leagueUsers.find(user => user.roster_id === newOwnerRosterId);
-            originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
-            newOwnerDisplayName = newOwner ? newOwner.display_name : "";
-            playerImage = `https://sleepercdn.com/images/v2/icons/player_default.webp`;
-            playerPosition = draftPick.season;
-            teamName = "N/A";
-            // console.log(playerPosition)
-            function getNumEnd(num) {
-              switch (num) {
-                  case 1:
-                      return "st";
-                  case 2:
-                      return "nd";
-                  case 3:
-                      return "rd";
-                  default:
-                      return "th";
-              }
-          }
-            playerName = draftPick.round + getNumEnd(draftPick.round) + " round pick";
-            const newDraftPicks= {
-              timestamp: timestamp,
-              originalOwnerDisplayName: originalOwnerDisplayName,
-              newOwnerDisplayName: newOwnerDisplayName,
-              originalOwnerRosterId: originalOwnerRosterId,
-              newOwnerRosterId: newOwnerRosterId,
-              playerImage: playerImage,
+            const timestamp = digestDate(trade.status_updated);
+            const originalOwnerRosterId = draftPick.previous_owner_id;
+            const newOwnerRosterId = draftPick.owner_id;
+            const originalOwner = leagueUsers.find((user) => user.roster_id === originalOwnerRosterId);
+            const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
+            const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
+            const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
+            const playerImage = "https://sleepercdn.com/images/v2/icons/player_default.webp";
+            const playerName = `${draftPick.round}${getNumEnd(draftPick.round)} round pick`;
+            const playerPosition = draftPick.season;
+            const teamName = "N/A";
+            
+            const newDraftPick = {
+              timestamp,
+              originalOwnerDisplayName,
+              newOwnerDisplayName,
+              originalOwnerRosterId,
+              newOwnerRosterId,
+              playerImage,
               playerName,
               playerPosition,
-              teamName
-            }
-            playerTradeInfo.push(newDraftPicks);
-            // console.log(playerTradeInfo); 
-          }
+              teamName,
+            };
 
+            playerTradeInfo.push(newDraftPick);
+          }
         }
+
         displayTradeInfo(playerTradeInfo);
       }
     }
   }
 }
+
 
 async function getUserDrafts(userId) {
   const drafts = [];
@@ -382,89 +398,93 @@ function displayStatusMessage(message) {
 
 async function main() {
 
-let leagues = JSON.parse(localStorage.getItem("leagues"));
+  async function start(user_id) {
+    leagues = JSON.parse(localStorage.getItem("leagues"));
 
-if (!leagues) {
-  leagues = await getLeagues(user_id);
-  localStorage.setItem("leagues", JSON.stringify(leagues));
-}
+    if (!leagues) {
+      leagues = await getLeagues(user_id);
+      localStorage.setItem("leagues", JSON.stringify(leagues));
+    }
 
-const uniqueLeagueNames = Array.from(new Set(leagues.map((league) => league.name)));
+    const uniqueLeagueNames = Array.from(new Set(leagues.map((league) => league.name)));
 
-for (const leagueName of uniqueLeagueNames) {
-  const option = document.createElement("option");
-  option.value = leagueName;
-  option.text = leagueName;
-  leagueSelectElement.add(option);
-}
+    for (const leagueName of uniqueLeagueNames) {
+      const option = document.createElement("option");
+      option.value = leagueName;
+      option.text = leagueName;
+      leagueSelectElement.add(option);
+    }
 
-let trades = JSON.parse(localStorage.getItem("trades"));
+    let trades = JSON.parse(localStorage.getItem("trades"));
 
-if (!trades) {
-  displayStatusMessage("Loading trade data...");
-  trades = {};
-// Commented out to just test for 2022 d-nasty
-  // for (const league of leagues) {
-  //   const leagueTrades = await getTransactionsForLeague(league.league_id);
-  //   trades[league.league_id] = leagueTrades;
-  // }
-const leagueTrades = await getTransactionsForLeague(784573640149762048);
-trades[784573640149762048] = leagueTrades;
+    if (!trades) {
+      displayStatusMessage("Loading leagues...");
+      trades = {};
+    // Commented out to just test for 2022 d-nasty
+      // for (const league of leagues) {
+      //   const leagueTrades = await getTransactionsForLeague(league.league_id);
+      //   trades[league.league_id] = leagueTrades;
+      // }
+    const leagueTrades = await getTransactionsForLeague(784573640149762048);
+    trades[784573640149762048] = leagueTrades;
 
-  localStorage.setItem("trades", JSON.stringify(trades));
+      localStorage.setItem("trades", JSON.stringify(trades));
 
-  displayStatusMessage("");
-}
+      displayStatusMessage("");
+    }
+    // When a new league is selected from the dropdown
+    leagueSelectElement.addEventListener("change", async (event) => {
+      const selectedLeagueName = event.target.value;
+      const latestYear = await getUniqueYears(leagues, selectedLeagueName);
+      populateYearDropdown(selectedLeagueName);
+      statusMessage.textContent = "Loading latest year of trades...";
+      await displayTradesForYear(leagues, selectedLeagueName, latestYear[0]);
+      statusMessage.textContent = "";
+    });
 
-let userDrafts = JSON.parse(localStorage.getItem("drafts"));
+    // When a new year is selected from the year dropdown
+    yearSelectElement.addEventListener("change", async (event) => {
+      const selectedYear = parseInt(event.target.value);
+      const selectedLeagueName = leagueSelectElement.value;
+      statusMessage.textContent = "Loading trades...";
+      await displayTradesForYear(leagues, selectedLeagueName, selectedYear);
+      statusMessage.textContent = "";
+    });
+    // let userDrafts = JSON.parse(localStorage.getItem("drafts"));
 
-if(!userDrafts) {
-  userDrafts = await processUserDrafts(user_id);
-}
-
-// When a new league is selected from the dropdown
-leagueSelectElement.addEventListener("change", async (event) => {
-  const selectedLeagueName = event.target.value;
-  const latestYear = getUniqueYears(leagues, selectedLeagueName)[0];
-  statusMessage.textContent = "Loading trades...";
-  await displayTradesForYear(leagues, selectedLeagueName, latestYear);
-  statusMessage.textContent = "";
-});
-
-// When a new year is selected from the year dropdown
-yearSelectElement.addEventListener("change", async (event) => {
-  const selectedYear = event.target.value;
-  const selectedLeagueName = leagueSelectElement.value;
-  statusMessage.textContent = "Loading trades...";
-  await displayTradesForYear(leagues, selectedLeagueName, selectedYear);
-  statusMessage.textContent = "";
-});
-
-searchButton.addEventListener("click", async () => {
-  const usernameInput = document.getElementById("usernameInput");
-  const username = usernameInput.value.trim();
-  if (username.length < 1) {
-    alert("Please enter a valid username.");
-    return;
+    // if(!userDrafts) {
+    //   userDrafts = await processUserDrafts(user_id);
+    // }
+    // processLeagueTrades(leagues[22]);
+    populateLeagueDropdown(leagues);
   }
-  let user_id = localStorage.getItem("user_id");
-  if (!user_id) {
-    try {
-      const response = await fetch(`${baseURL}user/${username}`);
-      const userData = await response.json();
-      user_id = userData.user_id;
-      localStorage.setItem("user_id", user_id);
-    } catch (error) {
-      alert("Unable to find user with that username.");
+
+
+
+  searchButton.addEventListener("click", async () => {
+    const usernameInput = document.getElementById("usernameInput");
+    const username = usernameInput.value.trim();
+    if (username.length < 1) {
+      alert("Please enter a valid username.");
       return;
     }
+    if (!user_id) {
+      try {
+        const response = await fetch(`${baseURL}user/${username}`);
+        const userData = await response.json();
+        user_id = userData.user_id;
+        localStorage.setItem("user_id", user_id);
+      } catch (error) {
+        alert("Unable to find user with that username.");
+        return;
+      }
+    }
+    start(user_id);
+  });
+  let user_id = localStorage.getItem("user_id");
+  if(user_id) {
+    start(user_id);
   }
-});
-
-  const initialLeagueName = uniqueLeagueNames[0];
-  // await displayTradesForSelectedLeague(leagues, initialLeagueName);
-  processLeagueTrades(leagues[22]);
-  populateLeagueDropdown(leagues);
 
 }
 
