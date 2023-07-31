@@ -1,117 +1,171 @@
 .trade {
-    display: flex;
-    position: relative;
-    flex-direction: column;
-    margin-bottom: 1em;
-  }
-  
-.trade-timestamp {
-    font-style: italic;
-    font-size: .7em;
-    text-align: center;
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  margin-bottom: 1em;
 }
   
-  .player-cell {
-    position: relative;
-    display: flex;
-    justify-content: space-evenly;
-    align-items: center;
-    padding: 8px 0 0;
+.trade-timestamp {
+  font-style: italic;
+  font-size: .7em;
+  text-align: center;
+}
+.player-cell {
+  position: relative;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  padding: 8px 0 0;
+}
+.player-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.trade-slot {
+  display: inline-block;
+  vertical-align: middle;
+  height: 50px;
+  width: 50px;
+  background-position: center;
+  border: 2px solid #00ceb8;
+  border-radius: 100%;
+  position: relative;
+  background-repeat: no-repeat;
+  background-size: auto 50px
+}
+.trade-indicator {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  color: #00ceb8;
+  background-color: #fff;
+  border-radius: 50%;
+}
+  .material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 1,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 48
   }
-  .player-slot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .trade-slot {
-    display: inline-block;
-    vertical-align: middle;
-    height: 50px;
-    width: 50px;
-    background-position: center;
-    border: 2px solid #00ceb8;
-    border-radius: 100%;
-    position: relative;
-    background-repeat: no-repeat;
-    background-size: auto 50px
-  }
-  .trade-indicator {
-    position: absolute;
-    bottom: -8px;
-    right: -8px;
-    color: #00ceb8;
-    background-color: #fff;
-    border-radius: 50%;
-  }
-    .material-symbols-outlined {
-    font-variation-settings:
-    'FILL' 1,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 48
-    }
-  .player-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .player-name {
-    font-weight: bold;
-  }
-  
-  .player-position-team {
-    font-size: 14px;
-    margin-top: 5px;
-  }
-  
-  .arrow {
-    display: inline-block;
-    width: 0;
-    height: 0;
-    border-top: 15px solid transparent;
-    border-bottom: 15px solid transparent;
-    border-right: 15px solid #222;
-    margin: 0 20px;
-  }
-  #main {
-    position: relative;
-    z-index: 1;
-    display: block;
-    margin: 30px auto;
-    width: 95%;
-    max-width: 1000px;
-    overflow-y: hidden;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    height: 1px;
-  }
-  th {
-    width: 50%;
-    position: relative;
-    text-align: center;
-  }
-  th div {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    height: 100%;
-  }
-  tbody {
-    background-color: white;
-    border: blue 1px solid;
-    margin: 20px;
-  }
-  td {
-    text-align: center;
-    padding: 0;
-    vertical-align: top;
-  }
-  body {
-    font-family: roboto;
-  }
+.player-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.player-name {
+  font-weight: bold;
+}
+
+.player-position-team {
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.arrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 15px solid transparent;
+  border-bottom: 15px solid transparent;
+  border-right: 15px solid #222;
+  margin: 0 20px;
+}
+#main {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin: 30px auto;
+  width: 95%;
+  max-width: 1000px;
+  overflow-y: hidden;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  height: 1px;
+}
+th {
+  width: 50%;
+  position: relative;
+  text-align: center;
+}
+th div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+tbody {
+  border: #00ceb8 1px solid;
+  margin: 20px;
+}
+td {
+  text-align: center;
+  padding: 0;
+  vertical-align: top;
+}
+body {
+  font-family: roboto;
+  background: #102131;
+  color: #fff;
+}
+select, input {
+  padding: 8px 32px 8px 16px;
+  cursor: pointer;
+  color: #fff;
+  background-color: #212a3c;
+  position: relative;
+  display: inline-block;
+  border-radius: 16px;
+  border: 0;
+  font-family: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+select option {
+  border: 0;
+}
+#searchButton {
+  background: transparent;
+  color: #fff;
+  border: 1px solid #a3bbd3;
+  border-radius: 5px;
+  padding: 8px 25px;
+  font-size: 10px;
+  height: 30px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+#usernameInput {
+  padding: 8px 32px 8px 16px;
+  color: #fff;
+  cursor: initial;
+  background-color: #212a3c;
+  position: relative;
+  display: inline-block;
+  border-radius: 16px;
+  border: 0;
+  font-family: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+.content {
+  max-width: 800px;
+  margin: 20px auto;
+}
+.container {
+  margin-bottom: 20px;
+}
+h2 {
+  text-align: center;
+}
+/* .hidden {
+  display: none;
+} */

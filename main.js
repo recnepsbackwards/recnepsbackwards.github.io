@@ -90,7 +90,7 @@ function displayTradeInfo(playerTradeInfo) {
   const tradeTable = document.createElement("table");
   tradeElement.appendChild(tradeTable);
 
-  const tradeTimestamp = document.createElement("span");
+  const tradeTimestamp = document.createElement("div");
   tradeTimestamp.classList.add("trade-timestamp");
   tradeElement.appendChild(tradeTimestamp);
 
