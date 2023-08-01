@@ -4,11 +4,13 @@ const tradeDataElement = document.getElementById("tradeData");
 const leagueSelectElement = document.getElementById("leagueSelect");
 const yearSelectElement = document.getElementById("yearSelect");
 const usernameInputElement = document.getElementById("usernameInput");
-const submitUsernameButtonElement = document.getElementById("submitUsernameButton");
 const statusMessageElement = document.getElementById("statusMessage");
 const leagueYearSelectContainerElement = document.getElementById("leagueYearSelectContainer");
 const searchButton = document.getElementById("searchButton");
 const usernameDisplay = document.getElementById('usernameDisplay');
+const usernameText = document.getElementById('usernameText');
+const changeUsername = document.getElementById('changeUsername');
+const blankState = document.getElementById('blankState');
 let leagues = [];
 
 function getNumEnd(num) {
@@ -23,13 +25,25 @@ function getNumEnd(num) {
           return "th";
   }
 }
+async function handleBlankState(e) {
+  const allShownTrades = document.querySelectorAll('.show-trade');
+  console.log(e);
+  if((e === true && allShownTrades.length === 0) || tradeDataElement.dataset.hasTrades === "false") {
+    blankState.classList.remove('hidden');
+  }
+  else {
+    blankState.classList.add('hidden');
+  }
+}
 async function handleCheckbox(e) {
   const allHiddenTrades = document.querySelectorAll('.hide-trade');
   if (e.target.checked) {
+    handleBlankState(e.target.checked);
     for (let i = 0; i < allHiddenTrades.length; i++) {
       allHiddenTrades[i].style.display = "none";
     }
   } else {
+    handleBlankState(e.target.checked);
     for (let i = 0; i < allHiddenTrades.length; i++) {
       allHiddenTrades[i].style.display = "block";
     }
@@ -38,9 +52,20 @@ async function handleCheckbox(e) {
 usernameDisplay.addEventListener("change", function(e) {
   handleCheckbox(e); // Call the handleCheckbox function with the event object
 });
+changeUsername.addEventListener("click", function() {
+  localStorage.clear();
+  usernameText.parentElement.classList.add('hidden');
+  usernameInputElement.parentElement.classList.remove('hidden');
+  leagueSelectElement.parentElement.classList.add('hidden');
+  yearSelectElement.parentElement.classList.add('hidden');
+  leagueSelectElement.innerHTML = "";
+  yearSelectElement.innerHTML = "";
+  tradeDataElement.innerHTML = "";
+});
+
 async function getLeagues(userId) {
   const leagues = [];
-
+  console.log(userId);
   for (let year = 2017; year <= new Date().getFullYear(); year++) {
     const response = await fetch(baseURL + "user/" + userId + "/leagues/nfl/" + year);
     const yearlyLeagues = await response.json();
@@ -164,6 +189,9 @@ function displayTradeInfo(playerTradeInfo) {
     if(player.originalOwnerDisplayName.toLowerCase() != userInfo[0].username && player.newOwnerDisplayName.toLowerCase() != userInfo[0].username) {
       tradeElement.classList.add("hide-trade");
     }
+    else {
+      tradeElement.classList.add("show-trade");
+    }
   });
 
   tradeDataElement.appendChild(tradeElement);
@@ -219,21 +247,25 @@ function populateLeagueDropdown(leagues) {
       leagueSelectElement.add(option);
     }
   }
+  leagueSelectElement.parentElement.classList.remove('hidden');
+  usernameInputElement.parentElement.classList.add('hidden');
+  usernameText.parentElement.classList.remove('hidden');
 }
 
 
 function populateYearDropdown(leagueName) {
   const selectedLeague = leagues.find((league) => league.leagueName === leagueName);
 
-  if (selectedLeague && selectedLeague.years.length > 1) {
+  if (selectedLeague && selectedLeague.years.length > 0) {
     const uniqueYears = selectedLeague.years.map((year) => year.year);
     const reversedYears = uniqueYears.reverse();
     yearSelectElement.innerHTML = reversedYears.map((year) => `<option value="${year}">${year}</option>`).join("");
 
-    yearSelectElement.disabled = false;
+    yearSelectElement.parentElement.classList.remove('hidden');
+    usernameDisplay.parentElement.classList.remove('hidden');
   } else {
     yearSelectElement.innerHTML = "";
-    yearSelectElement.disabled = true;
+    yearSelectElement.parentElement.classList.add('hidden');
   }
 }
 
@@ -241,7 +273,7 @@ async function displayTradesForYear(leagues, selectedLeagueName, year) {
   tradeDataElement.innerHTML = "";
   const selectedLeague = leagues.find((league) => league.leagueName === selectedLeagueName);
   if (selectedLeague) {
-    const yearHeader = document.createElement("h2");
+    const yearHeader = document.createElement("h4");
     yearHeader.textContent = selectedLeagueName + " - " + year;
     tradeDataElement.appendChild(yearHeader);
     const leaguesForYear = selectedLeague.years.filter((leagueYear) => leagueYear.year === year);
@@ -283,7 +315,7 @@ async function processLeagueTrades(league) {
   let leagueTrades = await getLeagueTrades(league.league_id);
   const leagueUsers = await getLeagueTradesUsers(league.league_id);
 
-  if (leagueTrades) {
+  if (leagueTrades.length > 0) {
     leagueTrades = leagueTrades.sort((a,b) => b.status_updated - a.status_updated);
     for (const trade of leagueTrades) {
       if (trade.adds && typeof trade.adds === "object") {
@@ -353,6 +385,11 @@ async function processLeagueTrades(league) {
         displayTradeInfo(playerTradeInfo);
       }
     }
+    tradeDataElement.dataset.hasTrades = "true";
+  }
+  else {
+    tradeDataElement.dataset.hasTrades = "false";
+    handleBlankState();
   }
 }
 
@@ -417,7 +454,6 @@ const digestDate = (tStamp) => {
 function displayStatusMessage(message) {
   statusMessageElement.textContent = message;
   statusMessageElement.classList.remove('hidden');
-  console.log('showing');
 }
 function hideStatusMessage() {
   statusMessageElement.classList.add('hidden');
@@ -431,15 +467,6 @@ async function main() {
     if (!leagues) {
       leagues = await getLeagues(user_id);
       localStorage.setItem("leagues", JSON.stringify(leagues));
-    }
-
-    const uniqueLeagueNames = Array.from(new Set(leagues.map((league) => league.name)));
-
-    for (const leagueName of uniqueLeagueNames) {
-      const option = document.createElement("li");
-      option.value = leagueName;
-      option.text = leagueName;
-      leagueSelectElement.prepend(option);
     }
 
     let trades = JSON.parse(localStorage.getItem("trades"));
@@ -463,18 +490,23 @@ async function main() {
       populateYearDropdown(selectedLeagueName);
       displayStatusMessage("Loading latest year of trades...");
       await displayTradesForYear(leagues, selectedLeagueName, latestYear[0]);
+      yearSelectElement.parentElement.classList.remove('hidden');
       hideStatusMessage();
     });
 
     // When a new year is selected from the year dropdown
     yearSelectElement.addEventListener("change", async (event) => {
+      displayStatusMessage("Loading year...");
       const selectedYear = parseInt(event.target.value);
       const selectedLeagueName = leagueSelectElement.value;
-      statusMessage.textContent = "Loading trades...";
       await displayTradesForYear(leagues, selectedLeagueName, selectedYear);
-      statusMessage.textContent = "";
+      hideStatusMessage();
     });
     populateLeagueDropdown(leagues);
+    const selectedLeagueName = leagueSelectElement.value;
+    const latestYear = await getUniqueYears(leagues, selectedLeagueName);
+    await displayTradesForYear(leagues, selectedLeagueName, latestYear[0]);
+    populateYearDropdown(selectedLeagueName);
   }
 
 
@@ -487,22 +519,19 @@ async function main() {
       alert("Please enter a valid username.");
       return;
     }
-    if (!userInfo) {
-      try {
-        const response = await fetch(`${baseURL}user/${username}`);
-        const userData = await response.json();
-        userArray.push({
-          user_identification: userData.user_id,
-          username: username
-        })
-        localStorage.setItem("userInfo", JSON.stringify(userArray));
-        start(userData.user_id);
-      } catch (error) {
-        alert("Unable to find user with that username.");
-        return;
-      }
+    try {
+      const response = await fetch(`${baseURL}user/${username}`);
+      const userData = await response.json();
+      userArray.push({
+        user_identification: userData.user_id,
+        username: username
+      })
+      localStorage.setItem("userInfo", JSON.stringify(userArray));
+      start(userData.user_id);
+    } catch (error) {
+      alert("Unable to find user with that username.");
+      return;
     }
-    start(userInfo.user_id);
   });
   let userInfo = JSON.parse(localStorage.getItem("userInfo"));
   if(userInfo) {
