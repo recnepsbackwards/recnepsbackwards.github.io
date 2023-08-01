@@ -29,7 +29,7 @@
   height: 50px;
   width: 50px;
   background-position: center;
-  border: 2px solid #00ceb8;
+  border: 2px solid var(--primary);
   border-radius: 100%;
   position: relative;
   background-repeat: no-repeat;
@@ -39,7 +39,7 @@
   position: absolute;
   bottom: -8px;
   right: -8px;
-  color: #00ceb8;
+  color: var(--primary);
   background-color: #fff;
   border-radius: 50%;
 }
@@ -88,11 +88,12 @@ table {
   border-collapse: collapse;
   table-layout: fixed;
   height: 1px;
+  margin-bottom: 0px !important;
 }
 th {
   width: 50%;
   position: relative;
-  text-align: center;
+  text-align: center !important;
 }
 th div {
   display: flex;
@@ -102,7 +103,7 @@ th div {
   height: 100%;
 }
 tbody {
-  border: #00ceb8 1px solid;
+  border: var(--primary) 1px solid;
   margin: 20px;
 }
 td {
@@ -110,61 +111,16 @@ td {
   padding: 0;
   vertical-align: top;
 }
-body {
-  font-family: roboto;
-  background: #102131;
-  color: #fff;
-}
-select, input {
-  padding: 8px 32px 8px 16px;
-  cursor: pointer;
-  color: #fff;
-  background-color: #212a3c;
-  position: relative;
-  display: inline-block;
-  border-radius: 16px;
-  border: 0;
-  font-family: inherit;
-  font-size: 100%;
-  vertical-align: baseline;
-}
-select option {
-  border: 0;
-}
-#searchButton {
-  background: transparent;
-  color: #fff;
-  border: 1px solid #a3bbd3;
-  border-radius: 5px;
-  padding: 8px 25px;
-  font-size: 10px;
-  height: 30px;
-  font-weight: bold;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-#usernameInput {
-  padding: 8px 32px 8px 16px;
-  color: #fff;
-  cursor: initial;
-  background-color: #212a3c;
-  position: relative;
-  display: inline-block;
-  border-radius: 16px;
-  border: 0;
-  font-family: inherit;
-  font-size: 100%;
-  vertical-align: baseline;
-}
 .content {
   max-width: 800px;
   margin: 20px auto;
 }
-.container {
-  margin-bottom: 20px;
-}
 h2 {
   text-align: center;
+}
+.right-trade-header, .left-trade-header {
+  color: var(--primary);
+  font-weight: bold;
 }
 /* .hidden {
   display: none;
