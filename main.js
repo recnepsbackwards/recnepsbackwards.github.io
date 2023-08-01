@@ -471,9 +471,9 @@ function handleButtonDisable() {
 
 async function main() {
 
-  async function start(user_id) {
+  async function start(user_id, user_name) {
     leagues = JSON.parse(localStorage.getItem("leagues"));
-
+    usernameText.innerHTML = "Username: " + user_name;
     if (!leagues) {
       leagues = await getLeagues(user_id);
       localStorage.setItem("leagues", JSON.stringify(leagues));
@@ -538,7 +538,7 @@ async function main() {
         username: username
       })
       localStorage.setItem("userInfo", JSON.stringify(userArray));
-      start(userData.user_id);
+      start(userData.user_id, username);
     } catch (error) {
       handleButtonDisable();
       alert("Unable to find user with that username.");
@@ -547,7 +547,7 @@ async function main() {
   });
   let userInfo = JSON.parse(localStorage.getItem("userInfo"));
   if(userInfo) {
-    start(userInfo[0].user_identification);
+    start(userInfo[0].user_identification, userInfo[0].username);
   }
 
 }
