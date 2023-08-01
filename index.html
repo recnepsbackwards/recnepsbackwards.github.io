@@ -19,12 +19,10 @@
       <button id="searchButton" type="submit">Submit</button>
     </div>
     <div class="container">
-      <select class="hidden" id="leagueSelect">
-        <option value="">Select league</option>
-      </select>
+      <select id="leagueSelect"></select>
     </div>
     <div class="container">
-      <select class="hidden" id="yearSelect">
+      <select id="yearSelect">
         <option value=""></option>
       </select>
     </div>
@@ -34,7 +32,7 @@
     </div>
   </div>
   <div id="main"><div id="tradeData"></div></div>
-  <div id="statusMessage"></div>
+  <div id="statusMessage" aria-busy="true" class="hidden"></div>
   <script src="players.js"></script>
   <script src="main.js"></script>
 </body>

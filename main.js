@@ -47,7 +47,7 @@ async function getLeagues(userId) {
 
     yearlyLeagues.forEach((league) => {
       const leagueName = league.name;
-
+      const leagueId = league.league_id
       const existingLeague = leagues.find((item) => item.leagueName === leagueName);
       if (existingLeague) {
         const existingYear = existingLeague.years.find((item) => item.year === year);
@@ -59,6 +59,7 @@ async function getLeagues(userId) {
       } else {
         leagues.push({
           leagueName,
+          leagueId,
           years: [{ year, leagues: [league] }]
         });
       }
@@ -135,7 +136,7 @@ function displayTradeInfo(playerTradeInfo) {
 
     const tradeSlot = document.createElement("div");
     tradeSlot.classList.add("trade-slot");
-    tradeSlot.style.backgroundImage = `url(${player.playerImage})`;
+    tradeSlot.style.backgroundImage = `url(${player.playerImage})`, `url(https://sleepercdn.com/images/v2/icons/player_default.webp)`;
     playerSlot.appendChild(tradeSlot);
 
     const tradeIndicator = document.createElement("i");
@@ -149,12 +150,15 @@ function displayTradeInfo(playerTradeInfo) {
     playerSlot.appendChild(playerPositionTeam);
     if(player.newOwnerRosterId < player.originalOwnerRosterId) {
       tradeTableCellLeft.appendChild(playerCell);
+      tradeSpanRight.textContent = player.originalOwnerDisplayName;
+      tradeSpanLeft.textContent = player.newOwnerDisplayName;
     }
     else {
       tradeTableCellRight.appendChild(playerCell);
+      tradeSpanLeft.textContent = player.originalOwnerDisplayName;
+      tradeSpanRight.textContent = player.newOwnerDisplayName;
     }
-    tradeSpanRight.textContent = player.originalOwnerDisplayName;
-    tradeSpanLeft.textContent = player.newOwnerDisplayName;
+
     tradeTimestamp.textContent = player.timestamp;
     let userInfo = JSON.parse(localStorage.getItem("userInfo"));
     if(player.originalOwnerDisplayName.toLowerCase() != userInfo[0].username && player.newOwnerDisplayName.toLowerCase() != userInfo[0].username) {
@@ -204,7 +208,6 @@ function populateLeagueDropdown(leagues) {
 
   // Clear the leagueSelectElement
   leagueSelectElement.innerHTML = "";
-
   // Loop through the leagues and add unique names to the array and options to the select element
   for (const league of leagues) {
     if (!uniqueLeagueNames.includes(league.leagueName)) {
@@ -239,7 +242,7 @@ async function displayTradesForYear(leagues, selectedLeagueName, year) {
   const selectedLeague = leagues.find((league) => league.leagueName === selectedLeagueName);
   if (selectedLeague) {
     const yearHeader = document.createElement("h2");
-    yearHeader.textContent = year;
+    yearHeader.textContent = selectedLeagueName + " - " + year;
     tradeDataElement.appendChild(yearHeader);
     const leaguesForYear = selectedLeague.years.filter((leagueYear) => leagueYear.year === year);
     for (const leagueYear of leaguesForYear) {
@@ -277,10 +280,11 @@ async function getLeagueTradesUsers(leagueId) {
   
 
 async function processLeagueTrades(league) {
-  const leagueTrades = await getLeagueTrades(league.league_id);
+  let leagueTrades = await getLeagueTrades(league.league_id);
   const leagueUsers = await getLeagueTradesUsers(league.league_id);
 
   if (leagueTrades) {
+    leagueTrades = leagueTrades.sort((a,b) => b.status_updated - a.status_updated);
     for (const trade of leagueTrades) {
       if (trade.adds && typeof trade.adds === "object") {
         const playerTradeInfo = Object.entries(trade.adds).map(([playerId]) => {
@@ -346,7 +350,6 @@ async function processLeagueTrades(league) {
             playerTradeInfo.push(newDraftPick);
           }
         }
-
         displayTradeInfo(playerTradeInfo);
       }
     }
@@ -413,6 +416,11 @@ const digestDate = (tStamp) => {
 
 function displayStatusMessage(message) {
   statusMessageElement.textContent = message;
+  statusMessageElement.classList.remove('hidden');
+  console.log('showing');
+}
+function hideStatusMessage() {
+  statusMessageElement.classList.add('hidden');
 }
 
 async function main() {
@@ -428,10 +436,10 @@ async function main() {
     const uniqueLeagueNames = Array.from(new Set(leagues.map((league) => league.name)));
 
     for (const leagueName of uniqueLeagueNames) {
-      const option = document.createElement("option");
+      const option = document.createElement("li");
       option.value = leagueName;
       option.text = leagueName;
-      leagueSelectElement.add(option);
+      leagueSelectElement.prepend(option);
     }
 
     let trades = JSON.parse(localStorage.getItem("trades"));
@@ -440,22 +448,22 @@ async function main() {
       displayStatusMessage("Loading leagues...");
       trades = {};
       for (const league of leagues) {
-        const leagueTrades = await getTransactionsForLeague(league.league_id);
+        const leagueTrades = await getTransactionsForLeague(league.leagueId);
         trades[league.league_id] = leagueTrades;
       }
 
       localStorage.setItem("trades", JSON.stringify(trades));
 
-      displayStatusMessage("");
+      hideStatusMessage();
     }
     // When a new league is selected from the dropdown
     leagueSelectElement.addEventListener("change", async (event) => {
       const selectedLeagueName = event.target.value;
       const latestYear = await getUniqueYears(leagues, selectedLeagueName);
       populateYearDropdown(selectedLeagueName);
-      statusMessage.textContent = "Loading latest year of trades...";
+      displayStatusMessage("Loading latest year of trades...");
       await displayTradesForYear(leagues, selectedLeagueName, latestYear[0]);
-      statusMessage.textContent = "";
+      hideStatusMessage();
     });
 
     // When a new year is selected from the year dropdown

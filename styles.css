@@ -115,11 +115,14 @@ td {
   max-width: 800px;
   margin: 20px auto;
 }
-h2 {
+h2, #statusMessage {
   text-align: center;
 }
 .right-trade-header, .left-trade-header {
   color: var(--primary);
+  font-weight: bold;
+}
+#statusMessage {
   font-weight: bold;
 }
 /* .hidden {
