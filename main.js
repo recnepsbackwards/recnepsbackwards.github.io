@@ -1,4 +1,4 @@
-// const user_id = "325851667310313472";
+const user_id = "";
 const baseURL = "https://api.sleeper.app/v1/";
 const tradeDataElement = document.getElementById("tradeData");
 const leagueSelectElement = document.getElementById("leagueSelect");
@@ -439,13 +439,10 @@ async function main() {
     if (!trades) {
       displayStatusMessage("Loading leagues...");
       trades = {};
-    // Commented out to just test for 2022 d-nasty
-      // for (const league of leagues) {
-      //   const leagueTrades = await getTransactionsForLeague(league.league_id);
-      //   trades[league.league_id] = leagueTrades;
-      // }
-    const leagueTrades = await getTransactionsForLeague(784573640149762048);
-    trades[784573640149762048] = leagueTrades;
+      for (const league of leagues) {
+        const leagueTrades = await getTransactionsForLeague(league.league_id);
+        trades[league.league_id] = leagueTrades;
+      }
 
       localStorage.setItem("trades", JSON.stringify(trades));
 
@@ -469,12 +466,6 @@ async function main() {
       await displayTradesForYear(leagues, selectedLeagueName, selectedYear);
       statusMessage.textContent = "";
     });
-    // let userDrafts = JSON.parse(localStorage.getItem("drafts"));
-
-    // if(!userDrafts) {
-    //   userDrafts = await processUserDrafts(user_id);
-    // }
-    // processLeagueTrades(leagues[22]);
     populateLeagueDropdown(leagues);
   }
 
@@ -497,6 +488,7 @@ async function main() {
           username: username
         })
         localStorage.setItem("userInfo", JSON.stringify(userArray));
+        start(userData.user_id);
       } catch (error) {
         alert("Unable to find user with that username.");
         return;
