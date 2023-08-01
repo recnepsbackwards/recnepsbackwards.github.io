@@ -27,7 +27,6 @@ function getNumEnd(num) {
 }
 async function handleBlankState(e) {
   const allShownTrades = document.querySelectorAll('.show-trade');
-  console.log(e);
   if((e === true && allShownTrades.length === 0) || tradeDataElement.dataset.hasTrades === "false") {
     blankState.classList.remove('hidden');
   }
@@ -66,7 +65,6 @@ changeUsername.addEventListener("click", function() {
 
 async function getLeagues(userId) {
   const leagues = [];
-  console.log(userId);
   for (let year = 2017; year <= new Date().getFullYear(); year++) {
     const response = await fetch(baseURL + "user/" + userId + "/leagues/nfl/" + year);
     const yearlyLeagues = await response.json();
