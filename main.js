@@ -54,6 +54,7 @@ usernameDisplay.addEventListener("change", function(e) {
 });
 changeUsername.addEventListener("click", function() {
   localStorage.clear();
+  handleButtonDisable();
   usernameText.parentElement.classList.add('hidden');
   usernameInputElement.parentElement.classList.remove('hidden');
   leagueSelectElement.parentElement.classList.add('hidden');
@@ -458,6 +459,17 @@ function displayStatusMessage(message) {
 function hideStatusMessage() {
   statusMessageElement.classList.add('hidden');
 }
+function handleButtonDisable() {
+  if(usernameInputElement.disabled === true && searchButton.disabled === true) {
+    usernameInputElement.disabled = false;
+    searchButton.disabled = false;
+  }
+  else {
+    usernameInputElement.disabled = true;
+    searchButton.disabled = true;
+  }
+  
+}
 
 async function main() {
 
@@ -520,6 +532,7 @@ async function main() {
       return;
     }
     try {
+      handleButtonDisable();
       const response = await fetch(`${baseURL}user/${username}`);
       const userData = await response.json();
       userArray.push({
@@ -529,6 +542,7 @@ async function main() {
       localStorage.setItem("userInfo", JSON.stringify(userArray));
       start(userData.user_id);
     } catch (error) {
+      handleButtonDisable();
       alert("Unable to find user with that username.");
       return;
     }
