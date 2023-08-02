@@ -160,7 +160,7 @@ function displayTradeInfo(playerTradeInfo) {
 
     const tradeSlot = document.createElement("div");
     tradeSlot.classList.add("trade-slot");
-    tradeSlot.style.backgroundImage = `url(${player.playerImage})`, `url(https://sleepercdn.com/images/v2/icons/player_default.webp)`;
+    tradeSlot.style.backgroundImage = `url(${player.playerImage}), url(https://sleepercdn.com/images/v2/icons/player_default.webp)`;
     playerSlot.appendChild(tradeSlot);
 
     const tradeIndicator = document.createElement("i");
@@ -307,86 +307,91 @@ async function getLeagueTradesUsers(leagueId) {
   return leagueUsers;
 }
   
-  
-  
+function getValueBySleeperId(sleeperId) {
+  const playerInfo = fantasyCalcData.find(player => player.sleeperId === sleeperId);
+  return playerInfo ? playerInfo.value : null;
+}  
 
 async function processLeagueTrades(league) {
   let leagueTrades = await getLeagueTrades(league.league_id);
   const leagueUsers = await getLeagueTradesUsers(league.league_id);
 
   if (leagueTrades.length > 0) {
-    leagueTrades = leagueTrades.sort((a,b) => b.status_updated - a.status_updated);
+    leagueTrades = leagueTrades.sort((a, b) => b.status_updated - a.status_updated);
     for (const trade of leagueTrades) {
+      const playerTradeInfo = [];
+
       if (trade.adds && typeof trade.adds === "object") {
-        const playerTradeInfo = Object.entries(trade.adds).map(([playerId]) => {
+        for (const [playerId, playerValue] of Object.entries(trade.adds)) {
           const playerObj = players[playerId];
-          let playerName = playerObj ? playerObj.full_name : "Unknown Player";
-          let playerImage = playerObj ? `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg` : "";
-          const teamName = playerObj ? playerObj.team || "" : "";
-          const playerPosition = playerObj ? playerObj.position || "" : "";
+          if (!playerObj) continue;
+
+          let playerName = playerObj.full_name || "Unknown Player";
+          let playerImage = `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
+          const teamName = playerObj.team || "";
+          const playerPosition = playerObj.position || "";
           const teamLogo = teamName ? `https://sleepercdn.com/images/team_logos/nfl/${teamName.toLowerCase()}.png` : "";
 
           if (playerPosition === "DEF") {
             playerImage = teamLogo;
-            playerName = playerObj.first_name + ' ' + playerObj.last_name;
+            playerName = `${playerObj.first_name} ${playerObj.last_name}`;
           }
 
           const timestamp = digestDate(trade.status_updated);
-          const originalOwnerRosterId = trade.drops[playerId];
+          const originalOwnerRosterId = trade.drops && trade.drops[playerId];
           const newOwnerRosterId = trade.adds[playerId];
           const originalOwner = leagueUsers.find((user) => user.roster_id === originalOwnerRosterId);
           const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
           const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
           const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
 
-          return {
+          playerTradeInfo.push({
             playerName,
             playerPosition,
             playerImage,
+            playerValue,
             teamName,
             timestamp,
             originalOwnerDisplayName,
             newOwnerDisplayName,
             originalOwnerRosterId,
             newOwnerRosterId,
-          };
-        });
-
-        if (trade.draft_picks) {
-          for (const draftPick of trade.draft_picks) {
-            const timestamp = digestDate(trade.status_updated);
-            const originalOwnerRosterId = draftPick.previous_owner_id;
-            const newOwnerRosterId = draftPick.owner_id;
-            const originalOwner = leagueUsers.find((user) => user.roster_id === originalOwnerRosterId);
-            const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
-            const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
-            const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
-            const playerImage = "https://sleepercdn.com/images/v2/icons/player_default.webp";
-            const playerName = `${draftPick.round}${getNumEnd(draftPick.round)} round pick`;
-            const playerPosition = draftPick.season;
-            const teamName = "N/A";
-            
-            const newDraftPick = {
-              timestamp,
-              originalOwnerDisplayName,
-              newOwnerDisplayName,
-              originalOwnerRosterId,
-              newOwnerRosterId,
-              playerImage,
-              playerName,
-              playerPosition,
-              teamName,
-            };
-
-            playerTradeInfo.push(newDraftPick);
-          }
+          });
         }
+      }
+
+      if (trade.draft_picks) {
+        for (const draftPick of trade.draft_picks) {
+          const timestamp = digestDate(trade.status_updated);
+          const originalOwnerRosterId = draftPick.previous_owner_id;
+          const newOwnerRosterId = draftPick.owner_id;
+          const originalOwner = leagueUsers.find((user) => user.roster_id === originalOwnerRosterId);
+          const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
+          const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
+          const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
+
+          const newDraftPick = {
+            timestamp,
+            originalOwnerDisplayName,
+            newOwnerDisplayName,
+            originalOwnerRosterId,
+            newOwnerRosterId,
+            playerImage: "https://sleepercdn.com/images/v2/icons/player_default.webp",
+            playerName: `${draftPick.round}${getNumEnd(draftPick.round)} round pick`,
+            playerPosition: draftPick.season,
+            teamName: "N/A",
+          };
+
+          playerTradeInfo.push(newDraftPick);
+        }
+      }
+
+      if (playerTradeInfo.length > 0) {
         displayTradeInfo(playerTradeInfo);
       }
     }
     tradeDataElement.dataset.hasTrades = "true";
-  }
-  else {
+  } else {
     tradeDataElement.dataset.hasTrades = "false";
     handleBlankState();
   }
@@ -512,6 +517,7 @@ async function main() {
       await displayTradesForYear(leagues, selectedLeagueName, selectedYear);
       hideStatusMessage();
     });
+
     populateLeagueDropdown(leagues);
     const selectedLeagueName = leagueSelectElement.value;
     const latestYear = await getUniqueYears(leagues, selectedLeagueName);
