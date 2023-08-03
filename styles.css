@@ -143,6 +143,10 @@ h2, h4 {
 #leagueSelect, #yearSelect {
   cursor: pointer;
 }
+.player-value {
+  color: var(--primary);
+  font-size: 14px;
+}
 .alert {
   margin-bottom: var(--spacing);
   padding: var(--form-element-spacing-vertical) var(--form-element-spacing-horizontal);
@@ -150,11 +154,20 @@ h2, h4 {
   color: var(--color);
   background-color: var(--background-color);
   border: 1px solid var(--background-color);
-  background-image: var(--icon);
-  background-position: center left var(--form-element-spacing-vertical);
-  background-size: calc(var(--font-size) *  1.5) auto;
 }
 .alert-danger {
   --background-color: var(--primary);
   --color: #fff;
+}
+.trade-calculator {
+  text-align: center;
+}
+.trade-amount {
+  color: var(--primary);
+  font-weight: bold;
+}
+.trade-arrow {
+  color: var(--primary);
+  border: transparent;
+  vertical-align: middle;
 }

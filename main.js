@@ -98,6 +98,7 @@ async function getLeagues(userId) {
 async function getTransactionsForLeague(leagueId) {
   const transactions = [];
   const maxWeeks = 18;
+  let finalTotal;
 
   for (let week = 1; week <= maxWeeks; week++) {
     const response = await fetch(baseURL + "league/" + leagueId + "/transactions/" + week);
@@ -109,15 +110,34 @@ async function getTransactionsForLeague(leagueId) {
   return transactions;
 }
 function displayTradeInfo(playerTradeInfo) {
+  let valueTotal1 = 0;
+  let valueTotal2 = 0;
+  let tradeTableCellLeft, tradeTableCellRight, tradeTableRow, tradeTableBody, emptyCellsLeft, emptyCellsRight;
+
+
   const tradeElement = document.createElement("div");
   tradeElement.classList.add("trade");
+
+  tradeDataElement.appendChild(tradeElement);
 
   const tradeTable = document.createElement("table");
   tradeElement.appendChild(tradeTable);
 
   const tradeTimestamp = document.createElement("div");
   tradeTimestamp.classList.add("trade-timestamp");
-  tradeElement.appendChild(tradeTimestamp);
+  tradeElement.prepend(tradeTimestamp);
+
+  const tradeCalculator = document.createElement("div");
+  tradeCalculator.classList.add("trade-calculator");
+  tradeElement.appendChild(tradeCalculator);
+
+  const tradeText = document.createElement("span");
+  tradeText.classList.add("trade-text");
+  tradeCalculator.appendChild(tradeText);
+
+  const tradeAmount = document.createElement("span");
+  tradeAmount.classList.add("trade-amount");
+  tradeCalculator.appendChild(tradeAmount);
 
   const tradeHead = document.createElement("thead");
   tradeTable.appendChild(tradeHead);
@@ -139,61 +159,127 @@ function displayTradeInfo(playerTradeInfo) {
   tradeSpanRight.classList.add("right-trade-header");
   tradeHeadCellRight.appendChild(tradeSpanRight);
 
-  const tradeTableBody = document.createElement("tbody");
+  tradeTableBody = document.createElement("tbody");
   tradeTable.appendChild(tradeTableBody);
-  playerTradeInfo.forEach((player) => {
-    const tradeTableRow = document.createElement("tr");
-    tradeTableBody.appendChild(tradeTableRow);
 
-    const tradeTableCellLeft = document.createElement("td");
-    tradeTableRow.appendChild(tradeTableCellLeft);
+  let rowAmount = Math.max(playerTradeInfo.teamOne.length, playerTradeInfo.teamTwo.length);
+  
+  for (var key in playerTradeInfo) {
+    const arr = playerTradeInfo[key];
+    for (var i=0; i<arr.length; i++) {
+      if(rowAmount > 0) {
+        rowAmount--;
+        tradeTableRow = document.createElement("tr");
+        tradeTableBody.appendChild(tradeTableRow);
+    
+        tradeTableCellLeft = document.createElement("td");
+        tradeTableRow.appendChild(tradeTableCellLeft);
+        tradeTableCellLeft.classList.add('empty-cell-left');
+    
+        tradeTableCellRight = document.createElement("td");
+        tradeTableRow.appendChild(tradeTableCellRight);
+        tradeTableCellRight.classList.add('empty-cell-right');
 
-    const tradeTableCellRight = document.createElement("td");
-    tradeTableRow.appendChild(tradeTableCellRight);
+      }
+      const player = arr[i];
 
-    const playerCell = document.createElement("div");
-    playerCell.classList.add("player-cell");
+      const playerCell = document.createElement("div");
+      playerCell.classList.add("player-cell");
+  
+      const playerSlot = document.createElement("div");
+      playerSlot.classList.add("player-slot");
+      playerCell.appendChild(playerSlot);
+  
+      const tradeSlot = document.createElement("div");
+      tradeSlot.classList.add("trade-slot");
+      tradeSlot.style.backgroundImage = `url(${player.playerImage})`;
+      playerSlot.appendChild(tradeSlot);
+  
+      const tradeIndicator = document.createElement("i");
+      tradeIndicator.classList.add("material-symbols-outlined", "trade-indicator");
+      tradeIndicator.innerHTML = "add_circle";
+      tradeSlot.appendChild(tradeIndicator);
+  
+      const playerPositionTeam = document.createElement("div");
+      playerPositionTeam.classList.add("player-position-team");
+      playerPositionTeam.textContent = player.teamName ? `${player.playerName} - ${player.playerPosition}` : player.playerName;
+      playerSlot.appendChild(playerPositionTeam);
+  
+      const playerValue = document.createElement("div");
+      playerValue.classList.add("player-value");
+      playerValue.textContent = player.playerValue || 0;
+      playerSlot.appendChild(playerValue); 
 
-    const playerSlot = document.createElement("div");
-    playerSlot.classList.add("player-slot");
-    playerCell.appendChild(playerSlot);
+      if(key === "teamOne") {
+          emptyCellsLeft = document.querySelectorAll(".empty-cell-left");
+          valueTotal1+= arr[i].playerValue;
+          tradeSpanRight.textContent = player.originalOwnerDisplayName;
+          tradeSpanLeft.textContent = player.newOwnerDisplayName;
+          if(emptyCellsLeft.length > 0) {
+            emptyCellsLeft[0].appendChild(playerCell);
+            emptyCellsLeft[0].classList.remove('empty-cell-left');
+          }
+          else {
+            tradeTableCellLeft.appendChild(playerCell);
+          }
+        }
+        else {
+          emptyCellsRight = document.querySelectorAll(".empty-cell-right");
+          valueTotal2+= arr[i].playerValue;
+          tradeSpanLeft.textContent = player.originalOwnerDisplayName;
+          tradeSpanRight.textContent = player.newOwnerDisplayName;
+          if(emptyCellsRight.length > 0) {
+            emptyCellsRight[0].appendChild(playerCell);
+            emptyCellsRight[0].classList.remove('empty-cell-right');
+          }
+          else {
+            tradeTableCellRight.appendChild(playerCell);
+          }
+        }
 
-    const tradeSlot = document.createElement("div");
-    tradeSlot.classList.add("trade-slot");
-    tradeSlot.style.backgroundImage = `url(${player.playerImage}), url(https://sleepercdn.com/images/v2/icons/player_default.webp)`;
-    playerSlot.appendChild(tradeSlot);
+      tradeTimestamp.textContent = player.timestamp;
+      let userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      if(player.originalOwnerDisplayName.toLowerCase() != userInfo[0].username && player.newOwnerDisplayName.toLowerCase() != userInfo[0].username) {
+        tradeElement.classList.add("hide-trade");
+      }
+      else {
+        tradeElement.classList.add("show-trade");
+      }
+    }
 
-    const tradeIndicator = document.createElement("i");
-    tradeIndicator.classList.add("material-symbols-outlined", "trade-indicator");
-    tradeIndicator.innerHTML = "add_circle";
-    tradeSlot.appendChild(tradeIndicator);
-
-    const playerPositionTeam = document.createElement("div");
-    playerPositionTeam.classList.add("player-position-team");
-    playerPositionTeam.textContent = player.teamName ? `${player.playerName} - ${player.playerPosition}` : player.playerName;
-    playerSlot.appendChild(playerPositionTeam);
-    if(player.newOwnerRosterId < player.originalOwnerRosterId) {
-      tradeTableCellLeft.appendChild(playerCell);
-      tradeSpanRight.textContent = player.originalOwnerDisplayName;
-      tradeSpanLeft.textContent = player.newOwnerDisplayName;
+  };
+  emptyCellsRight = document.querySelectorAll(".empty-cell-right");
+  emptyCellsLeft = document.querySelectorAll(".empty-cell-left");
+  for(var i = 0; i < emptyCellsRight.length; i++) {
+    emptyCellsRight[i].classList.remove('empty-cell-right');
+  }
+  for(var j = 0; j < emptyCellsLeft.length; j++) {
+    emptyCellsLeft[j].classList.remove('empty-cell-left');
+  }
+  if(valueTotal1 > valueTotal2) {
+    const leftArrow = document.createElement("span");
+    leftArrow.classList.add("material-symbols-outlined", "trade-arrow");
+    leftArrow.innerHTML = "arrow_left_alt";
+    tradeCalculator.prepend(leftArrow);
+    finalTotal = valueTotal1-valueTotal2;
+    tradeText.textContent = "Favors Team One by ";
+    tradeAmount.textContent = finalTotal;
+  }
+  else {
+    if(valueTotal1 < valueTotal2) {
+      const arrowRight = document.createElement("span");
+      arrowRight.classList.add("material-symbols-outlined", "trade-arrow");
+      arrowRight.innerHTML = "arrow_right_alt";
+      tradeCalculator.appendChild(arrowRight);
+      finalTotal = valueTotal2-valueTotal1;
+      tradeText.textContent = "Favors Team Two by ";
+      tradeAmount.textContent = finalTotal;
     }
     else {
-      tradeTableCellRight.appendChild(playerCell);
-      tradeSpanLeft.textContent = player.originalOwnerDisplayName;
-      tradeSpanRight.textContent = player.newOwnerDisplayName;
+      tradeCalculator.classList.add("even-arrow");
+      tradeText.innerHTML = "Exactly even trade";
     }
-
-    tradeTimestamp.textContent = player.timestamp;
-    let userInfo = JSON.parse(localStorage.getItem("userInfo"));
-    if(player.originalOwnerDisplayName.toLowerCase() != userInfo[0].username && player.newOwnerDisplayName.toLowerCase() != userInfo[0].username) {
-      tradeElement.classList.add("hide-trade");
-    }
-    else {
-      tradeElement.classList.add("show-trade");
-    }
-  });
-
-  tradeDataElement.appendChild(tradeElement);
+  }
 }
 
 
@@ -310,7 +396,19 @@ async function getLeagueTradesUsers(leagueId) {
 function getValueBySleeperId(sleeperId) {
   const playerInfo = fantasyCalcData.find(player => player.sleeperId === sleeperId);
   return playerInfo ? playerInfo.value : null;
-}  
+}
+function getValueByDraftPick(pickNumber) {
+  switch (pickNumber) {
+    case 1:
+        return 3686;
+    case 2:
+        return 1646;
+    case 3:
+        return 1060;
+    default:
+        return 755;
+  }
+}
 
 async function processLeagueTrades(league) {
   let leagueTrades = await getLeagueTrades(league.league_id);
@@ -318,11 +416,22 @@ async function processLeagueTrades(league) {
 
   if (leagueTrades.length > 0) {
     leagueTrades = leagueTrades.sort((a, b) => b.status_updated - a.status_updated);
-    for (const trade of leagueTrades) {
-      const playerTradeInfo = [];
 
+    for (const trade of leagueTrades) {
+      const playerTradeInfo = {
+        teamOne: [],
+        teamTwo: []
+      };
+      function groupedTradeData(currentData) {
+        if(currentData.newOwnerRosterId < currentData.originalOwnerRosterId) {
+          playerTradeInfo.teamOne.push(currentData);
+        }
+        else {
+          playerTradeInfo.teamTwo.push(currentData);
+        }
+      }
       if (trade.adds && typeof trade.adds === "object") {
-        for (const [playerId, playerValue] of Object.entries(trade.adds)) {
+        for (const [playerId] of Object.entries(trade.adds)) {
           const playerObj = players[playerId];
           if (!playerObj) continue;
 
@@ -344,8 +453,8 @@ async function processLeagueTrades(league) {
           const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
           const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
           const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
-
-          playerTradeInfo.push({
+          const playerValue = getValueBySleeperId(playerId);
+          const objectInfo = {
             playerName,
             playerPosition,
             playerImage,
@@ -356,7 +465,8 @@ async function processLeagueTrades(league) {
             newOwnerDisplayName,
             originalOwnerRosterId,
             newOwnerRosterId,
-          });
+          }
+          groupedTradeData(objectInfo);
         }
       }
 
@@ -369,6 +479,7 @@ async function processLeagueTrades(league) {
           const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
           const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
           const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
+          const playerValue = getValueByDraftPick(draftPick.round);
 
           const newDraftPick = {
             timestamp,
@@ -376,17 +487,18 @@ async function processLeagueTrades(league) {
             newOwnerDisplayName,
             originalOwnerRosterId,
             newOwnerRosterId,
+            playerValue,
             playerImage: "https://sleepercdn.com/images/v2/icons/player_default.webp",
             playerName: `${draftPick.round}${getNumEnd(draftPick.round)} round pick`,
             playerPosition: draftPick.season,
             teamName: "N/A",
           };
 
-          playerTradeInfo.push(newDraftPick);
+          groupedTradeData(newDraftPick);
+
         }
       }
-
-      if (playerTradeInfo.length > 0) {
+      if (Object.keys(playerTradeInfo).length > 0) {
         displayTradeInfo(playerTradeInfo);
       }
     }
