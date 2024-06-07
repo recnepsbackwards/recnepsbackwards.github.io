@@ -57,6 +57,8 @@ changeUsername.addEventListener("click", function() {
   usernameInputElement.parentElement.classList.remove('hidden');
   leagueSelectElement.parentElement.classList.add('hidden');
   yearSelectElement.parentElement.classList.add('hidden');
+  blankState.classList.add('hidden');
+  usernameDisplay.parentElement.classList.add('hidden');
   leagueSelectElement.innerHTML = "";
   yearSelectElement.innerHTML = "";
   tradeDataElement.innerHTML = "";
@@ -409,6 +411,10 @@ function getValueByDraftPick(pickNumber) {
   }
 }
 
+function getPlayerInfoBySleeperId(dataArray, sleeperId) {
+  return dataArray.find(player => player.sleeperId === sleeperId) || null;
+}
+
 async function processLeagueTrades(league) {
   let leagueTrades = await getLeagueTrades(league.league_id);
   const leagueUsers = await getLeagueTradesUsers(league.league_id);
@@ -431,10 +437,11 @@ async function processLeagueTrades(league) {
       }
       if (trade.adds && typeof trade.adds === "object") {
         for (const [playerId] of Object.entries(trade.adds)) {
-          const playerObj = fantasyCalcData[sleeperId];
+
+          const playerObj = getPlayerInfoBySleeperId(fantasyCalcData, playerId);
           if (!playerObj) continue;
 
-          let playerName = playerObj.full_name || "Unknown Player";
+          let playerName = playerObj.name || "Unknown Player";
           let playerImage = `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
           const teamName = playerObj.team || "";
           const playerPosition = playerObj.position || "";
@@ -442,7 +449,7 @@ async function processLeagueTrades(league) {
 
           if (playerPosition === "DEF") {
             playerImage = teamLogo;
-            playerName = `${playerObj.first_name} ${playerObj.last_name}`;
+            playerName = `${playerObj.name}`;
           }
 
           const timestamp = digestDate(trade.status_updated);
