@@ -66,16 +66,24 @@ changeUsername.addEventListener("click", function() {
 
 async function getLeagues(userId) {
   const leagues = [];
-  for (let year = 2017; year <= new Date().getFullYear(); year++) {
-    const response = await fetch(baseURL + "user/" + userId + "/leagues/nfl/" + year);
-    const yearlyLeagues = await response.json();
+  const currentYear = new Date().getFullYear();
+  const yearPromises = [];
 
-    yearlyLeagues.forEach((league) => {
+  for (let year = 2017; year <= currentYear; year++) {
+    yearPromises.push(fetch(baseURL + "user/" + userId + "/leagues/nfl/" + year).then(response => response.json()));
+  }
+
+  const yearlyLeagues = await Promise.all(yearPromises);
+
+  yearlyLeagues.forEach((yearlyLeague, index) => {
+    yearlyLeague.forEach(league => {
       const leagueName = league.name;
-      const leagueId = league.league_id
-      const existingLeague = leagues.find((item) => item.leagueName === leagueName);
+      const leagueId = league.league_id;
+      const existingLeague = leagues.find(item => item.leagueName === leagueName);
+      const year = 2017 + index;
+
       if (existingLeague) {
-        const existingYear = existingLeague.years.find((item) => item.year === year);
+        const existingYear = existingLeague.years.find(item => item.year === year);
         if (existingYear) {
           existingYear.leagues.push(league);
         } else {
@@ -89,27 +97,33 @@ async function getLeagues(userId) {
         });
       }
     });
-  }
+  });
 
   return leagues;
 }
 
 
 
+
 async function getTransactionsForLeague(leagueId) {
-  const transactions = [];
   const maxWeeks = 18;
-  let finalTotal;
+  const weekPromises = [];
 
   for (let week = 1; week <= maxWeeks; week++) {
-    const response = await fetch(baseURL + "league/" + leagueId + "/transactions/" + week);
-    const weeklyTransactions = await response.json();
-    const trades = weeklyTransactions.filter((transaction) => transaction.type === "trade");
-    transactions.push(...trades);
+    weekPromises.push(fetch(baseURL + "league/" + leagueId + "/transactions/" + week).then(response => response.json()));
   }
+
+  const weeklyTransactions = await Promise.all(weekPromises);
+  const transactions = [];
+
+  weeklyTransactions.forEach(weeklyTransaction => {
+    const trades = weeklyTransaction.filter(transaction => transaction.type === "trade");
+    transactions.push(...trades);
+  });
 
   return transactions;
 }
+
 function displayTradeInfo(playerTradeInfo) {
   let valueTotal1 = 0;
   let valueTotal2 = 0;
@@ -360,6 +374,7 @@ async function displayTradesForYear(leagues, selectedLeagueName, year) {
   const selectedLeague = leagues.find((league) => league.leagueName === selectedLeagueName);
   if (selectedLeague) {
     const yearHeader = document.createElement("h4");
+    yearHeader.classList.add('yearHeader');
     yearHeader.textContent = selectedLeagueName + " - " + year;
     tradeDataElement.appendChild(yearHeader);
     const leaguesForYear = selectedLeague.years.filter((leagueYear) => leagueYear.year === year);
@@ -415,6 +430,17 @@ function getPlayerInfoBySleeperId(dataArray, sleeperId) {
   return dataArray.find(player => player.sleeperId === sleeperId) || null;
 }
 
+// async function mapPlayerToDraftPick(leagueId, draftPick) {
+//   const getAllDraftsForLeague = await fetch(`${baseURL}league/${leagueId}/drafts`);
+//   for(var i=0; i<getAllDraftsForLeague.length; i++) {
+//     var specificLeague = getAllDraftsForLeague[i].draft_id;
+//     const getSpecificDraftForLeague = await fetch(`${baseURL}draft/${specificLeague}`);
+//     // draftPick can have many entries [[pick1][pick2]]
+//     // need to search through each specific draft with each pick until finding a match then return the info to process trade
+//     // use the returned slot_to_roster_id then we GET https://api.sleeper.app/v1/draft/<draft_id>/picks
+//   }
+// }
+
 async function processLeagueTrades(league) {
   let leagueTrades = await getLeagueTrades(league.league_id);
   const leagueUsers = await getLeagueTradesUsers(league.league_id);
@@ -439,13 +465,12 @@ async function processLeagueTrades(league) {
         for (const [playerId] of Object.entries(trade.adds)) {
 
           const playerObj = getPlayerInfoBySleeperId(fantasyCalcData, playerId);
-          if (!playerObj) continue;
 
-          let playerName = playerObj.name || "Unknown Player";
-          let playerImage = `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
-          const teamName = playerObj.team || "";
-          const playerPosition = playerObj.position || "";
-          const teamLogo = teamName ? `https://sleepercdn.com/images/team_logos/nfl/${teamName.toLowerCase()}.png` : "";
+          let playerName = playerObj ? playerObj.name : "Unknown Player";
+          let playerImage = playerObj ? `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg` : "https://sleepercdn.com/images/v2/icons/player_default.webp";
+          let teamName = playerObj ? playerObj.team : "N/A";
+          let playerPosition = playerObj ? playerObj.position : "N/A";
+          let teamLogo = teamName ? `https://sleepercdn.com/images/team_logos/nfl/${teamName.toLowerCase()}.png` : "";
 
           if (playerPosition === "DEF") {
             playerImage = teamLogo;
@@ -459,7 +484,7 @@ async function processLeagueTrades(league) {
           const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
           const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
           const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
-          const playerValue = getValueBySleeperId(playerId);
+          const playerValue = playerObj ? getValueBySleeperId(playerId) : 0;
           const objectInfo = {
             playerName,
             playerPosition,
@@ -477,6 +502,8 @@ async function processLeagueTrades(league) {
       }
 
       if (trade.draft_picks) {
+        // const actualPlayer = mapPlayerToDraftPick(league.league_id, trade.draft_picks);
+        console.log(trade.draft_picks);
         for (const draftPick of trade.draft_picks) {
           const timestamp = digestDate(trade.status_updated);
           const originalOwnerRosterId = draftPick.previous_owner_id;
@@ -620,6 +647,8 @@ async function main() {
     leagueSelectElement.addEventListener("change", async (event) => {
       const selectedLeagueName = event.target.value;
       const latestYear = await getUniqueYears(leagues, selectedLeagueName);
+      blankState.classList.add('hidden');
+      document.querySelector('.yearHeader').innerText = "";
       populateYearDropdown(selectedLeagueName);
       displayStatusMessage("Loading latest year of trades...");
       await displayTradesForYear(leagues, selectedLeagueName, latestYear[0]);
