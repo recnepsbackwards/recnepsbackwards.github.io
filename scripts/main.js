@@ -217,7 +217,13 @@ function displayTradeInfo(playerTradeInfo) {
   
       const playerPositionTeam = document.createElement("div");
       playerPositionTeam.classList.add("player-position-team");
-      playerPositionTeam.textContent = player.teamName ? `${player.playerName} - ${player.playerPosition}` : player.playerName;
+      if(player.playerSeason) {
+        playerPositionTeam.textContent = player.teamName ? `${player.playerName}` : player.playerName;
+      }
+      else {
+        playerPositionTeam.textContent = player.teamName ? `${player.playerName} - ${player.playerPosition}` : player.playerName;
+      }
+      
       playerSlot.appendChild(playerPositionTeam);
   
       const playerValue = document.createElement("div");
@@ -430,19 +436,49 @@ function getPlayerInfoBySleeperId(dataArray, sleeperId) {
   return dataArray.find(player => player.sleeperId === sleeperId) || null;
 }
 
-// async function mapPlayerToDraftPick(leagueId, draftPick) {
-//   const getAllDraftsForLeague = await fetch(`${baseURL}league/${leagueId}/drafts`);
-//   for(var i=0; i<getAllDraftsForLeague.length; i++) {
-//     var specificLeague = getAllDraftsForLeague[i].draft_id;
-//     const getSpecificDraftForLeague = await fetch(`${baseURL}draft/${specificLeague}`);
-//     // draftPick can have many entries [[pick1][pick2]]
-//     // need to search through each specific draft with each pick until finding a match then return the info to process trade
-//     // use the returned slot_to_roster_id then we GET https://api.sleeper.app/v1/draft/<draft_id>/picks
-//   }
-// }
+async function mapPlayerToDraftPick(leagueId, draftPick) {
+
+  const getAllDraftsForLeagueResponse = await fetch(`${baseURL}league/${leagueId}/drafts`);
+  const drafts = await getAllDraftsForLeagueResponse.json();
+
+  for (const draft of drafts) {
+
+    if (draft.season !== draftPick.season) {
+      continue;
+    }
+
+    const specificLeague = draft.draft_id;
+    const getSpecificDraftForLeague = await fetch(`${baseURL}draft/${specificLeague}`);
+    const specificDraft = await getSpecificDraftForLeague.json();
+
+    const getPicksForDraft = await fetch(`${baseURL}draft/${specificLeague}/picks`);
+    const picks = await getPicksForDraft.json();
+
+    const slots = specificDraft.settings.teams;
+
+    for (const pick of picks) {
+
+      if (pick.round === draftPick.round && specificDraft.slot_to_roster_id[pick.draft_slot] === draftPick.roster_id) {
+        const draftSlotPadded = pick.draft_slot.toString().padStart(2, '0');  // Prepend 0 to single digits
+        return {
+          playerName: `${pick.metadata.first_name} ${pick.metadata.last_name}`,
+          player_id: pick.player_id,
+          round: pick.round,
+          draft_slot: draftSlotPadded,
+          position: pick.metadata.position,
+          season: draft.season
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 
 async function processLeagueTrades(league) {
   let leagueTrades = await getLeagueTrades(league.league_id);
+
   const leagueUsers = await getLeagueTradesUsers(league.league_id);
 
   if (leagueTrades.length > 0) {
@@ -453,23 +489,23 @@ async function processLeagueTrades(league) {
         teamOne: [],
         teamTwo: []
       };
+
       function groupedTradeData(currentData) {
-        if(currentData.newOwnerRosterId < currentData.originalOwnerRosterId) {
+        if (currentData.newOwnerRosterId < currentData.originalOwnerRosterId) {
           playerTradeInfo.teamOne.push(currentData);
-        }
-        else {
+        } else {
           playerTradeInfo.teamTwo.push(currentData);
         }
       }
+
       if (trade.adds && typeof trade.adds === "object") {
         for (const [playerId] of Object.entries(trade.adds)) {
-
           const playerObj = getPlayerInfoBySleeperId(fantasyCalcData, playerId);
 
           let playerName = playerObj ? playerObj.name : "Unknown Player";
           let playerImage = playerObj ? `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg` : "https://sleepercdn.com/images/v2/icons/player_default.webp";
-          let teamName = playerObj ? playerObj.team : "N/A";
-          let playerPosition = playerObj ? playerObj.position : "N/A";
+          let teamName = playerObj ? playerObj.team : "";
+          let playerPosition = playerObj ? playerObj.position : "";
           let teamLogo = teamName ? `https://sleepercdn.com/images/team_logos/nfl/${teamName.toLowerCase()}.png` : "";
 
           if (playerPosition === "DEF") {
@@ -496,15 +532,15 @@ async function processLeagueTrades(league) {
             newOwnerDisplayName,
             originalOwnerRosterId,
             newOwnerRosterId,
-          }
+          };
           groupedTradeData(objectInfo);
         }
       }
 
       if (trade.draft_picks) {
-        // const actualPlayer = mapPlayerToDraftPick(league.league_id, trade.draft_picks);
-        console.log(trade.draft_picks);
         for (const draftPick of trade.draft_picks) {
+          const actualPlayer = await mapPlayerToDraftPick(league.league_id, draftPick);
+
           const timestamp = digestDate(trade.status_updated);
           const originalOwnerRosterId = draftPick.previous_owner_id;
           const newOwnerRosterId = draftPick.owner_id;
@@ -512,7 +548,9 @@ async function processLeagueTrades(league) {
           const newOwner = leagueUsers.find((user) => user.roster_id === newOwnerRosterId);
           const originalOwnerDisplayName = originalOwner ? originalOwner.display_name : "";
           const newOwnerDisplayName = newOwner ? newOwner.display_name : "";
-          const playerValue = getValueByDraftPick(draftPick.round);
+
+          // Construct player name with year, round number, and pick number if actual player is found
+          let playerName = actualPlayer ? `${actualPlayer.playerName} - ${actualPlayer.position} (Pick ${actualPlayer.round}.${actualPlayer.draft_slot} ${actualPlayer.season})` : `${draftPick.round}${getNumEnd(draftPick.round)} round - ${draftPick.season}`;
 
           const newDraftPick = {
             timestamp,
@@ -520,17 +558,18 @@ async function processLeagueTrades(league) {
             newOwnerDisplayName,
             originalOwnerRosterId,
             newOwnerRosterId,
-            playerValue,
-            playerImage: "https://sleepercdn.com/images/v2/icons/player_default.webp",
-            playerName: `${draftPick.round}${getNumEnd(draftPick.round)} round pick`,
+            playerValue: actualPlayer ? getValueBySleeperId(actualPlayer.player_id) : getValueByDraftPick(draftPick.round),
+            playerImage: actualPlayer ? `https://sleepercdn.com/content/nfl/players/thumb/${actualPlayer.player_id}.jpg` : "https://sleepercdn.com/images/v2/icons/player_default.webp",
+            playerName: playerName,
+            playerSeason: draftPick.season,
             playerPosition: draftPick.season,
             teamName: "N/A",
           };
 
           groupedTradeData(newDraftPick);
-
         }
       }
+
       if (Object.keys(playerTradeInfo).length > 0) {
         displayTradeInfo(playerTradeInfo);
       }
@@ -541,6 +580,7 @@ async function processLeagueTrades(league) {
     handleBlankState();
   }
 }
+
 
 
 async function getUserDrafts(userId) {
